@@ -2,15 +2,7 @@
 generate_certificates.py
 
 Usage example:
-python generate_certificates.py \
-  --template cert_template.svg \
-  --names participants.csv \
-  --x 1200 --y 700 \
-  --font ./fonts/Inter-Regular.ttf \
-  --fontsize 64 \
-  --color "#0B3D91" \
-  --align center \
-  --out certs.zip
+uv run main.py --x 1000 --y 707
 """
 
 import argparse
@@ -154,27 +146,32 @@ def draw_name_on_image(img: Image.Image, name: str, x: int, y: int,
 
 def main():
     parser = argparse.ArgumentParser(description="Generate certificates from a template and names list.")
-    parser.add_argument("--template", "-t", required=True, help="Path to template image (PNG or SVG).")
-    parser.add_argument("--names", "-n", required=True, help="Path to names file (CSV or TXT).")
+    parser.add_argument("--template", "-t", required=False, help="Path to template image (PNG or SVG).")
+    parser.add_argument("--names", "-n", required=False, help="Path to names file (CSV or TXT).")
     parser.add_argument("--x", type=int, required=True, help="X coordinate (pixels) for the name anchor.")
     parser.add_argument("--y", type=int, required=True, help="Y coordinate (pixels) for the name anchor.")
-    parser.add_argument("--font", "-f", required=True, help="Path to .ttf/.otf font that supports your language.")
-    parser.add_argument("--fontsize", type=int, default=64, help="Font size in points.")
+    parser.add_argument("--font", "-f", required=False, help="Path to .ttf/.otf font that supports your language.")
+    parser.add_argument("--fontsize", required=False, type=int, default=90, help="Font size in points.")
     parser.add_argument("--color", default="#000000", help="Text color (hex or common color names).")
     parser.add_argument("--align", choices=["left", "center", "right"], default="center", help="Text horizontal alignment.")
     parser.add_argument("--out", "-o", default="certificates.zip", help="Output zip filename.")
     parser.add_argument("--outfile_format", default="{name}.png", help="Format string for output files inside zip. Use {name}.")
     parser.add_argument("--outline", action="store_true", help="Draw black outline behind text to improve readability.")
-    parser.add_argument("--dpi", type=int, default=300, help="DPI for rendering (affects SVG->PNG quality).")
+    parser.add_argument("--dpi", type=int, default=600, help="DPI for rendering (affects SVG->PNG quality).")
     args = parser.parse_args()
 
-    for path, name in [(args.template, "template"), (args.names, "names file"), (args.font, "font file")]:
+    template_path = "template.png"
+    names_path = "participants.csv"
+    font_path = "GoogleSans-Regular.ttf"
+    output_zip = "certificates.zip"
+
+    for path, name in [(template_path, "template"), (names_path, "participants file"), (font_path, "font file")]:
         if not os.path.exists(path):
             print(f"ERROR: {name} not found: {path}", file=sys.stderr)
             sys.exit(1)
 
     try:
-        names = load_names(args.names)
+        names = load_names(names_path)
     except Exception as e:
         print(f"ERROR: Failed to load names file: {e}", file=sys.stderr)
         sys.exit(1)
@@ -186,7 +183,7 @@ def main():
     print(f"Loaded {len(names)} names")
     
     try:
-        png_bytes = render_template_to_png_bytes(args.template)
+        png_bytes = render_template_to_png_bytes(template_path)
     except Exception as e:
         print(f"ERROR: Template processing failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -204,7 +201,7 @@ def main():
         print(f"WARNING: Coordinates ({args.x}, {args.y}) may be outside image bounds", file=sys.stderr)
     
     try:
-        font = ImageFont.truetype(args.font, args.fontsize)
+        font = ImageFont.truetype(font_path, args.fontsize)
     except Exception as e:
         print(f"ERROR: Failed to load font: {e}", file=sys.stderr)
         try:
@@ -214,7 +211,7 @@ def main():
             print("ERROR: No font available", file=sys.stderr)
             sys.exit(1)
     
-    out_zip_path = os.path.abspath(args.out)
+    out_zip_path = os.path.abspath(output_zip)
     success_count = 0
     
     try:
@@ -222,11 +219,11 @@ def main():
             for idx, name in enumerate(names, start=1):
                 try:
                     safe_name = sanitize_filename(name)
-                    out_filename = args.outfile_format.format(name=safe_name, idx=idx)
+                    out_filename = f"{safe_name}.png"
                     
                     img = base_img.copy()
                     img = draw_name_on_image(img, name, args.x, args.y, font, args.color, 
-                                           align=args.align, outline=args.outline)
+                                           align="center", outline=args.outline)
                     
                     img_bytes = BytesIO()
                     img.save(img_bytes, format="PNG", optimize=True, dpi=(args.dpi, args.dpi))
