@@ -145,21 +145,6 @@ def draw_name_on_image(img: Image.Image, name: str, x: int, y: int,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate certificates from a template and names list.")
-    parser.add_argument("--template", "-t", required=False, help="Path to template image (PNG or SVG).")
-    parser.add_argument("--names", "-n", required=False, help="Path to names file (CSV or TXT).")
-    parser.add_argument("--x", type=int, required=True, help="X coordinate (pixels) for the name anchor.")
-    parser.add_argument("--y", type=int, required=True, help="Y coordinate (pixels) for the name anchor.")
-    parser.add_argument("--font", "-f", required=False, help="Path to .ttf/.otf font that supports your language.")
-    parser.add_argument("--fontsize", required=False, type=int, default=90, help="Font size in points.")
-    parser.add_argument("--color", default="#000000", help="Text color (hex or common color names).")
-    parser.add_argument("--align", choices=["left", "center", "right"], default="center", help="Text horizontal alignment.")
-    parser.add_argument("--out", "-o", default="certificates.zip", help="Output zip filename.")
-    parser.add_argument("--outfile_format", default="{name}.png", help="Format string for output files inside zip. Use {name}.")
-    parser.add_argument("--outline", action="store_true", help="Draw black outline behind text to improve readability.")
-    parser.add_argument("--dpi", type=int, default=600, help="DPI for rendering (affects SVG->PNG quality).")
-    args = parser.parse_args()
-
     template_path = "template.png"
     names_path = "participants.csv"
     font_path = "GoogleSans-Regular.ttf"
@@ -170,18 +155,6 @@ def main():
             print(f"ERROR: {name} not found: {path}", file=sys.stderr)
             sys.exit(1)
 
-    try:
-        names = load_names(names_path)
-    except Exception as e:
-        print(f"ERROR: Failed to load names file: {e}", file=sys.stderr)
-        sys.exit(1)
-    
-    if not names:
-        print("ERROR: No valid names found in the names file.", file=sys.stderr)
-        sys.exit(1)
-    
-    print(f"Loaded {len(names)} names")
-    
     try:
         png_bytes = render_template_to_png_bytes(template_path)
     except Exception as e:
@@ -196,6 +169,27 @@ def main():
     
     base_width, base_height = base_img.size
     print(f"Template size: {base_width} x {base_height} pixels")
+
+    parser = argparse.ArgumentParser(description="Generate certificates from a template and names list.")
+    parser.add_argument("--x", type=int, default=base_width//2, help="X coordinate (pixels) for the name anchor.")
+    parser.add_argument("--y", type=int, default=base_height//2, help="Y coordinate (pixels) for the name anchor.")
+    parser.add_argument("--fontsize", type=int, default=90, help="Font size in points.")
+    parser.add_argument("--color", default="#000000", help="Text color (hex or common color names).")
+    parser.add_argument("--outline", action="store_true", help="Draw black outline behind text to improve readability.")
+    parser.add_argument("--dpi", type=int, default=600, help="DPI for rendering (affects SVG->PNG quality).")
+    args = parser.parse_args()
+
+    try:
+        names = load_names(names_path)
+    except Exception as e:
+        print(f"ERROR: Failed to load names file: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    if not names:
+        print("ERROR: No valid names found in the names file.", file=sys.stderr)
+        sys.exit(1)
+    
+    print(f"Loaded {len(names)} names")
     
     if args.x < 0 or args.x >= base_width or args.y < 0 or args.y >= base_height:
         print(f"WARNING: Coordinates ({args.x}, {args.y}) may be outside image bounds", file=sys.stderr)
