@@ -80,12 +80,12 @@ def create_email_message(sender_email: str, recipient_email: str, recipient_name
     if body is None:
         body = f"""Dear {recipient_name},
 
-Congratulations! Please find your certificate attached to this email.
+Congratulations on getting this certificate for nothing. Please find your certificate attached to this email.
 
-We appreciate your participation and wish you continued success.
+We appreciate your participation (for real) and wish you continued success.
 
 Best regards,
-Certificate Team"""
+Jeethan Roche - From VS Code"""
 
     msg = MIMEMultipart()
     msg['From'] = sender_email
@@ -161,7 +161,65 @@ def send_certificates_via_email(participants: List[Tuple[str, str]],
     
     return sent_count, failed_count
 
-load_dotenv()
+
+def send_emails(zip_path="certificates.zip", csv_path="participants.csv", 
+                smtp_server="smtp.gmail.com", smtp_port=587, sender_email=None, 
+                sender_password=None, custom_subject=None, custom_body=None, 
+                dry_run=False):
+    
+    load_dotenv()
+    
+    if sender_password is None:
+        sender_password = os.getenv("APP_PASSWORD")
+    
+    if not os.path.exists(zip_path):
+        print(f"ERROR: ZIP file not found: {zip_path}", file=sys.stderr)
+        return False
+    
+    if not os.path.exists(csv_path):
+        print(f"ERROR: CSV file not found: {csv_path}", file=sys.stderr)
+        return False
+    
+    try:
+        participants = load_participants_with_emails(csv_path)
+    except Exception as e:
+        print(f"ERROR: Failed to load participants: {e}", file=sys.stderr)
+        return False
+    
+    if not participants:
+        print("ERROR: No valid participants with emails found in CSV file", file=sys.stderr)
+        return False
+    
+    print(f"Loaded {len(participants)} participants with email addresses")
+    
+    try:
+        certificates = extract_certificates_from_zip(zip_path)
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return False
+    
+    print(f"Extracted {len(certificates)} certificates from ZIP file")
+    
+    if dry_run:
+        print("\nRunning in DRY RUN mode - no emails will be sent")
+    
+    sent_count, failed_count = send_certificates_via_email(
+        participants, certificates, smtp_server, smtp_port,
+        sender_email, sender_password, custom_subject, custom_body, dry_run
+    )
+    
+    print(f"\nEmail Summary:")
+    print(f"Successfully sent: {sent_count}")
+    print(f"Failed: {failed_count}")
+    print(f"Total participants: {len(participants)}")
+    
+    if failed_count > 0:
+        print(f"\nNote: {failed_count} emails failed. Check the error messages above.")
+        return False
+    
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Send certificates via email to participants")
     parser.add_argument("--zip", required=False, default="certificates.zip", help="Path to certificates ZIP file")
