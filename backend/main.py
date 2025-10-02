@@ -1,24 +1,19 @@
-"""
-main.py
-
-Usage example:
-uv run main.py --x 1000 --y 707
-"""
-
 import argparse
 import sys
-from generator import generate_certificates
-from email_sender import send_emails
+import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import os
 import shutil
+from generator import generate_certificates
+from email_sender import send_emails
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-CORS(app)
 
 load_dotenv()
+
+allowed_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
+CORS(app, origins=allowed_origins)
 
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
@@ -171,9 +166,10 @@ def download_certificates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/status', methods=['GET'])
-def status():
-    return jsonify({'status': 'Server running'}), 200
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'Server running', 'env': os.getenv('FLASK_ENV', 'development')}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.getenv('FLASK_ENV') != 'production')
