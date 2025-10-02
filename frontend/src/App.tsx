@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import axios from "axios";
 import "./App.css";
 import FileIcon from "./components/icons/FileIcon";
@@ -27,7 +27,7 @@ interface Status {
   message: string;
 }
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 function App() {
   const [formData, setFormData] = useState<FormData>({
@@ -166,6 +166,19 @@ function App() {
       setStatus({ type: "error", message: "Failed to download certificates" });
     }
   };
+
+  useEffect(() => {
+    const checkBackendConnection = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/health`);
+        console.log("Backend connected:", response.data);
+      } catch (error) {
+        console.error("Backend connection failed:", error);
+      }
+    };
+
+    checkBackendConnection();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -386,7 +399,7 @@ function App() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
           <div className="flex items-center mb-6">
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-              <EmailIcon/>
+              <EmailIcon />
             </div>
             <h2 className="text-xl font-medium text-gray-800">
               Email Configuration
