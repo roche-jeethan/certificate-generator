@@ -135,13 +135,12 @@ def draw_name_on_image(img: Image.Image, name: str, x: int, y: int,
     return img
 
 
-def generate_certificates(x=None, y=None, fontsize=90, color="#000000", outline=False, dpi=600):
-    template_path = "template.png"
-    names_path = "participants.csv"
+def generate_certificates(template_path="template.png", participants_path="participants.csv", 
+                         x=None, y=None, fontsize=90, color="#000000", outline=False, dpi=600):
     font_path = "GoogleSans-Regular.ttf"
     output_zip = "certificates.zip"
 
-    for path, name in [(template_path, "template"), (names_path, "participants file"), (font_path, "font file")]:
+    for path, name in [(template_path, "template"), (participants_path, "participants file"), (font_path, "font file")]:
         if not os.path.exists(path):
             print(f"ERROR: {name} not found: {path}", file=sys.stderr)
             return False
@@ -165,7 +164,7 @@ def generate_certificates(x=None, y=None, fontsize=90, color="#000000", outline=
     y_coord = y if y is not None else base_height // 2
 
     try:
-        names = load_names(names_path)
+        names = load_names(participants_path)
     except Exception as e:
         print(f"ERROR: Failed to load names file: {e}", file=sys.stderr)
         return False

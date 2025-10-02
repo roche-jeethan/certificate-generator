@@ -70,15 +70,8 @@ def extract_certificates_from_zip(zip_path: str) -> Dict[str, bytes]:
     return certificates
 
 
-def create_email_message(sender_email: str, recipient_email: str, recipient_name: str, 
-                        certificate_data: bytes, certificate_filename: str, 
-                        subject: str = None, body: str = None) -> MIMEMultipart:
-    
-    if subject is None:
-        subject = f"Your Certificate - {recipient_name}"
-    
-    if body is None:
-        body = f"""Dear {recipient_name},
+def load_email_body(body_path: str = "email_body.txt") -> str:
+    default_body = """Dear {name},
 
 Congratulations on getting this certificate for nothing. Please find your certificate attached to this email.
 
@@ -86,6 +79,27 @@ We appreciate your participation (for real) and wish you continued success.
 
 Best regards,
 Jeethan Roche - From VS Code"""
+    
+    if os.path.exists(body_path):
+        try:
+            with open(body_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception:
+            return default_body
+    return default_body
+
+
+def create_email_message(sender_email: str, recipient_email: str, recipient_name: str, 
+                        certificate_data: bytes, certificate_filename: str, 
+                        subject: str = None, body_template: str = None) -> MIMEMultipart:
+    
+    if subject is None:
+        subject = f"Your Certificate - {recipient_name}"
+    
+    if body_template is None:
+        body_template = load_email_body()
+    
+    body = body_template.format(name=recipient_name)
 
     msg = MIMEMultipart()
     msg['From'] = sender_email
@@ -105,7 +119,7 @@ def send_certificates_via_email(participants: List[Tuple[str, str]],
                                certificates: Dict[str, bytes],
                                smtp_server: str, smtp_port: int,
                                sender_email: str, sender_password: str,
-                               custom_subject: str = None, custom_body: str = None,
+                               custom_subject: str = None, body_template: str = None,
                                dry_run: bool = False) -> Tuple[int, int]:
     
     sent_count = 0
@@ -139,7 +153,7 @@ def send_certificates_via_email(participants: List[Tuple[str, str]],
                 else:
                     msg = create_email_message(
                         sender_email, email, name, certificate_data, certificate_filename,
-                        custom_subject, custom_body
+                        custom_subject, body_template
                     )
                     
                     server.send_message(msg)
@@ -164,7 +178,7 @@ def send_certificates_via_email(participants: List[Tuple[str, str]],
 
 def send_emails(zip_path="certificates.zip", csv_path="participants.csv", 
                 smtp_server="smtp.gmail.com", smtp_port=587, sender_email=None, 
-                sender_password=None, custom_subject=None, custom_body=None, 
+                sender_password=None, custom_subject=None, body_template=None, 
                 dry_run=False):
     
     load_dotenv()
@@ -205,7 +219,7 @@ def send_emails(zip_path="certificates.zip", csv_path="participants.csv",
     
     sent_count, failed_count = send_certificates_via_email(
         participants, certificates, smtp_server, smtp_port,
-        sender_email, sender_password, custom_subject, custom_body, dry_run
+        sender_email, sender_password, custom_subject, body_template, dry_run
     )
     
     print(f"\nEmail Summary:")
