@@ -128,7 +128,7 @@ def send_emails_endpoint():
     try:
         data = request.json
         sender_email = data.get('senderEmail')
-        sender_password = data.get('senderPassword') or os.getenv('APP_PASSWORD')
+        sender_password = os.getenv('APP_PASSWORD')
         custom_subject = data.get('customSubject')
         dry_run = data.get('dryRun', False)
         
